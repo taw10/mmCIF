@@ -317,7 +317,7 @@ int main(int argc, char *argv[])
 
 	} while ( image != NULL );
 
-	//cif_loop_free(refl_loop);
+	cif_loop_free(refl_loop);
 	cif_loop_free(crystal_loop);
 
 	stream_close(st);

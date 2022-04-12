@@ -4,12 +4,10 @@ project('stream2mmCIF', ['c'],
         default_options: ['buildtype=debugoptimized'])
 
 
-# Dependencies
 cc = meson.get_compiler('c')
 crystfel_dep = dependency('crystfel')
 cif_dep = dependency('libcif')
 
-# GUI
 executable('stream2mmCIF',
            ['stream2mmCIF.c'],
            dependencies: [crystfel_dep, cif_dep],
