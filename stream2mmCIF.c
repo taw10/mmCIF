@@ -259,6 +259,8 @@ int main(int argc, char *argv[])
 		image = stream_read_chunk(st, STREAM_REFLECTIONS);
 		if ( image == NULL ) continue;
 
+		if ( image->n_crystals == 0 ) continue;
+
 		for ( i=0; i<image->n_crystals; i++ ) {
 
 			Reflection *refl;
