@@ -135,26 +135,92 @@ static void cif_packet_set_float(cif_packet_tp *pkt, const char *name,
 }
 
 
-static void add_crystal_info(cif_loop_tp *crystal_loop, int crystal_id,
-                             int image_id)
+static void cif_packet_set_string(cif_packet_tp *pkt, const char *name,
+                                  const char *val)
+{
+	UChar *name_u;
+	UChar *val_u;
+	cif_value_tp *val_cif;
+
+	cif_call(cif_cstr_to_ustr(name, -1, &name_u),
+	         "Create name string");
+	cif_call(cif_value_create(CIF_CHAR_KIND, &val_cif),
+	         "Initialise value");
+	cif_call(cif_cstr_to_ustr(val, -1, &val_u),
+	         "Create value string");
+	cif_call(cif_value_init_char(val_cif, val_u),
+	         "Failed to set value");
+	cif_call(cif_packet_set_item(pkt, name_u, val_cif),
+	         "Failed to set packet value");
+}
+
+
+static void add_batch_info(cif_loop_tp *batch_loop,
+                           int crystal_id,
+                           int image_id)
 {
 	cif_packet_tp *packet;
 
 	cif_call(cif_packet_create(&packet, NULL),
 	         "Failed to create loop packet");
 
-	cif_packet_set_int(packet, "_diffrn_batch.diffrn_id", crystal_id);
-	cif_packet_set_int(packet, "_diffrn_batch.pdbx_image_id", image_id);
+	cif_packet_set_int(packet, "_diffrn_batch.id", crystal_id);
+	cif_packet_set_int(packet, "_diffrn_batch.diffrn_id", 1);
 	cif_packet_set_int(packet, "_diffrn_batch.cell_id", crystal_id);
+	cif_packet_set_int(packet, "_diffrn_batch.space_group_id", 1);
+	cif_packet_set_int(packet, "_diffrn_batch.orient_matrix_id", crystal_id);
+	cif_packet_set_int(packet, "_diffrn_batch.wavelength_id", image_id);
+	cif_packet_set_int(packet, "_diffrn_batch.pdbx_image_id", image_id);
 
-	cif_call(cif_loop_add_packet(crystal_loop, packet),
+	cif_call(cif_loop_add_packet(batch_loop, packet),
 	         "Failed to add packet to loop");
 
 	cif_packet_free(packet);
 }
 
 
-static void add_cell(cif_loop_tp *loop, int crystal_id, UnitCell *cell)
+static void add_image_info(cif_loop_tp *wavelength_loop,
+                           int image_id, double wl)
+{
+	cif_packet_tp *packet;
+
+	cif_call(cif_packet_create(&packet, NULL),
+	         "Failed to create loop packet");
+
+	cif_packet_set_int(packet, "_diffrn_radiation_wavelength.id", image_id);
+	cif_packet_set_float(packet, "_diffrn_radiation_wavelength.wavelength",
+	                     wl*1e10);  /* In Angstroms */
+
+	cif_call(cif_loop_add_packet(wavelength_loop, packet),
+	         "Failed to add packet to loop");
+
+	cif_packet_free(packet);
+}
+
+
+static void add_spg(cif_loop_tp *spg_loop,
+                    const char *HM_alt, int IT_num,
+                    const char *Hall, const char *crystal_system)
+{
+	cif_packet_tp *packet;
+
+	cif_call(cif_packet_create(&packet, NULL),
+	         "Failed to create loop packet");
+
+	cif_packet_set_int(packet, "_space_group.id", 1);
+	cif_packet_set_string(packet, "_space_group.name_H-M_alt", HM_alt);
+	cif_packet_set_int(packet, "_space_group.IT_number", IT_num);
+	cif_packet_set_string(packet, "_space_group.name_Hall", Hall);
+	cif_packet_set_string(packet, "_space_group.crystal_system", crystal_system);
+
+	cif_call(cif_loop_add_packet(spg_loop, packet),
+	         "Failed to add packet to loop");
+
+	cif_packet_free(packet);
+}
+
+
+static void add_cell(cif_loop_tp *cell_loop, int crystal_id, UnitCell *cell)
 {
 	cif_packet_tp *packet;
 	double a, b, c, al, be, ga;
@@ -172,8 +238,86 @@ static void add_cell(cif_loop_tp *loop, int crystal_id, UnitCell *cell)
 	cif_packet_set_float(packet, "_diffrn_cell.angle_beta", rad2deg(be));
 	cif_packet_set_float(packet, "_diffrn_cell.angle_gamma", rad2deg(ga));
 
-	cif_call(cif_loop_add_packet(loop, packet),
+	cif_call(cif_loop_add_packet(cell_loop, packet),
 	         "Failed to add packet to loop");
+
+	cif_packet_free(packet);
+}
+
+
+static void add_orient(cif_loop_tp *orient_loop, int crystal_id, UnitCell *cell)
+{
+	cif_packet_tp *packet;
+	double ax, ay, az, bx, by, bz, cx, cy, cz;
+
+	cif_call(cif_packet_create(&packet, NULL),
+	         "Failed to create loop packet");
+
+	cell_get_reciprocal(cell, &ax, &ay, &az, &bx, &by, &bz, &cx, &cy, &cz);
+
+	cif_packet_set_int(packet, "_diffrn_orient_matrix.id", crystal_id);
+	cif_packet_set_int(packet, "_diffrn_orient_matrix.diffrn_id", 1);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[1][1]", ax/1e10);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[1][2]", ay/1e10);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[1][3]", az/1e10);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[2][1]", bx/1e10);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[2][2]", by/1e10);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[2][3]", bz/1e10);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[3][1]", cx/1e10);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[3][2]", cy/1e10);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[3][3]", cz/1e10);
+	cif_packet_set_string(packet, "_diffrn_orient_matrix.type", "UB matrix");
+
+	cif_call(cif_loop_add_packet(orient_loop, packet),
+	         "Failed to add packet to loop");
+
+	cif_packet_free(packet);
+}
+
+
+static void add_reflection(cif_loop_tp *refl_loop, int refln_id, int crystal_id,
+                           signed int h, signed int k, signed int l,
+                           double fs, double ss,
+                           double intensity, double esd_intensity,
+                           const char *panel_name)
+{
+	cif_packet_tp *packet;
+
+	cif_call(cif_packet_create(&packet, NULL),
+	         "Failed to create reflection packet");
+
+	cif_packet_set_int(packet,
+	                   "_diffrn_refln.id", refln_id);
+	cif_packet_set_int(packet,
+	                   "_diffrn_refln.batch_id",
+	                   crystal_id);
+	cif_packet_set_int(packet,
+	                   "_diffrn_refln.diffrn_id",
+	                   1);
+	cif_packet_set_int(packet,
+	                   "_diffrn_refln.index_h", h);
+	cif_packet_set_int(packet,
+	                   "_diffrn_refln.index_k", k);
+	cif_packet_set_int(packet,
+	                   "_diffrn_refln.index_l", l);
+	cif_packet_set_float(packet,
+	                     "_diffrn_refln.intensity_net",
+	                     intensity);
+	cif_packet_set_float(packet,
+	                     "_diffrn_refln.intensity_sigma",
+	                     esd_intensity);
+	cif_packet_set_int(packet,
+	                   "_diffrn_refln.pdbx_detector_calc_fast",
+	                   fs);
+	cif_packet_set_int(packet,
+	                   "_diffrn_refln.pdbx_detector_calc_slow",
+	                   ss);
+	cif_packet_set_string(packet,
+	                      "_diffrn_refln.pdbx_detector_array_id",
+	                      panel_name);
+
+	cif_call(cif_loop_add_packet(refl_loop, packet),
+	         "Failed to add reflection packet");
 
 	cif_packet_free(packet);
 }
@@ -187,8 +331,11 @@ int main(int argc, char *argv[])
 	cif_tp *cif = NULL;
 	FILE *fh;
 	cif_loop_tp *refl_loop;
-	cif_loop_tp *crystal_loop;
+	cif_loop_tp *batch_loop;
 	cif_loop_tp *cell_loop;
+	cif_loop_tp *orient_loop;
+	cif_loop_tp *spg_loop;
+	cif_loop_tp *wavelength_loop;
 	long int refln_id;
 	long int image_id;
 	long int crystal_id;
@@ -221,22 +368,27 @@ int main(int argc, char *argv[])
 
 	refl_loop = create_loop(block, "_diffrn_refln",
 	                        "_diffrn_refln.id",
+	                        "_diffrn_refln.batch_id",
 	                        "_diffrn_refln.diffrn_id",
 	                        "_diffrn_refln.index_h",
 	                        "_diffrn_refln.index_k",
 	                        "_diffrn_refln.index_l",
-	                        "_diffrn_refln.pdbx_image_id",
 	                        "_diffrn_refln.intensity_net",
 	                        "_diffrn_refln.intensity_sigma",
-	                        "_diffrn_refln.detector_x",
-	                        "_diffrn_refln.detector_y",
+	                        "_diffrn_refln.pdbx_detector_calc_fast",
+	                        "_diffrn_refln.pdbx_detector_calc_slow",
+	                        "_diffrn_refln.pdbx_detector_array_id",
 	                        NULL);
 
-	crystal_loop = create_loop(block, "_diffrn_batch",
-	                           "_diffrn_batch.diffrn_id",
-	                           "_diffrn_batch.pdbx_image_id",
-	                           "_diffrn_batch.cell_id",
-	                           NULL);
+	batch_loop = create_loop(block, "_diffrn_batch",
+	                         "_diffrn_batch.id",
+	                         "_diffrn_batch.diffrn_id",
+	                         "_diffrn_batch.cell_id",
+	                         "_diffrn_batch.space_group_id",
+	                         "_diffrn_batch.orient_matrix_id",
+	                         "_diffrn_batch.wavelength_id",
+	                         "_diffrn_batch.pdbx_image_id",
+	                         NULL);
 
 	cell_loop = create_loop(block, "_diffrn_cell",
 	                        "_diffrn_cell.id",
@@ -248,6 +400,36 @@ int main(int argc, char *argv[])
 	                        "_diffrn_cell.angle_gamma",
 	                        NULL);
 
+	wavelength_loop = create_loop(block, "_diffrn_radiation_wavelength",
+	                              "_diffrn_radiation_wavelength.id",
+	                              "_diffrn_radiation_wavelength.wavelength",
+	                              NULL);
+
+	spg_loop = create_loop(block, "_space_group",
+	                       "_space_group.id",
+	                       "_space_group.name_H-M_alt",
+	                       "_space_group.IT_number",
+	                       "_space_group.name_Hall",
+	                       "_space_group.crystal_system",
+	                       NULL);
+
+	add_spg(spg_loop, "C 2 2 21", 20, "C 2c 2", "Orthorhombic");
+
+	orient_loop = create_loop(block, "_diffrn_orient_matrix",
+	                          "_diffrn_orient_matrix.id",
+	                          "_diffrn_orient_matrix.diffrn_id",
+	                          "_diffrn_orient_matrix.matrix[1][1]",
+	                          "_diffrn_orient_matrix.matrix[1][2]",
+	                          "_diffrn_orient_matrix.matrix[1][3]",
+	                          "_diffrn_orient_matrix.matrix[2][1]",
+	                          "_diffrn_orient_matrix.matrix[2][2]",
+	                          "_diffrn_orient_matrix.matrix[2][3]",
+	                          "_diffrn_orient_matrix.matrix[3][1]",
+	                          "_diffrn_orient_matrix.matrix[3][2]",
+	                          "_diffrn_orient_matrix.matrix[3][3]",
+	                          "_diffrn_orient_matrix.type",
+	                          NULL);
+
 	image = NULL;
 	image_id = 1;
 	crystal_id = 1;
@@ -256,56 +438,42 @@ int main(int argc, char *argv[])
 
 		int i;
 
-		image = stream_read_chunk(st, STREAM_REFLECTIONS);
+		image = stream_read_chunk(st, STREAM_REFLECTIONS | STREAM_DATA_DETGEOM);
 		if ( image == NULL ) continue;
 
 		if ( image->n_crystals == 0 ) continue;
+
+		add_image_info(wavelength_loop, image_id, image->lambda);
 
 		for ( i=0; i<image->n_crystals; i++ ) {
 
 			Reflection *refl;
 			RefListIterator *iter;
 			Crystal *cr = image->crystals[i];
-			add_crystal_info(crystal_loop, crystal_id, image_id);
+
+			add_batch_info(batch_loop, crystal_id, image_id);
 			add_cell(cell_loop, crystal_id, crystal_get_cell(cr));
+			add_orient(orient_loop, crystal_id, crystal_get_cell(cr));
 
 			for ( refl = first_refl(crystal_get_reflections(cr), &iter);
 			      refl != NULL;
 			      refl = next_refl(refl, iter) )
 			{
 				signed int h, k, l;
-				cif_packet_tp *packet;
+				double fs, ss;
+				int panel;
 
 				get_indices(refl, &h, &k,  &l);
+				get_detector_pos(refl, &fs, &ss);
+				panel = get_panel_number(refl);
 
-				cif_call(cif_packet_create(&packet, NULL),
-				         "Failed to create reflection packet");
+				add_reflection(refl_loop, refln_id,
+				               crystal_id, h, k,l,
+				               fs, ss,
+				               get_intensity(refl),
+				               get_esd_intensity(refl),
+				               image->detgeom->panels[panel].name);
 
-				cif_packet_set_int(packet,
-				                   "_diffrn_refln.id", refln_id);
-				cif_packet_set_int(packet,
-				                   "_diffrn_refln.diffrn_id",
-				                   crystal_id);
-				cif_packet_set_int(packet,
-				                   "_diffrn_refln.index_h", h);
-				cif_packet_set_int(packet,
-				                   "_diffrn_refln.index_k", k);
-				cif_packet_set_int(packet,
-				                   "_diffrn_refln.index_l", l);
-				cif_packet_set_int(packet,
-				                   "_diffrn_refln.pdbx_image_id",
-				                   image_id);
-				cif_packet_set_float(packet,
-				                   "_diffrn_refln.intensity_net",
-				                   get_intensity(refl));
-				cif_packet_set_float(packet,
-				                   "_diffrn_refln.intensity_sigma",
-				                   get_esd_intensity(refl));
-
-				cif_call(cif_loop_add_packet(refl_loop, packet),
-				         "Failed to add reflection packet");
-
-				cif_packet_free(packet);
 				refln_id++;
 
 			}
@@ -318,7 +486,11 @@ int main(int argc, char *argv[])
 	} while ( image != NULL );
 
 	cif_loop_free(refl_loop);
-	cif_loop_free(crystal_loop);
+	cif_loop_free(batch_loop);
+	cif_loop_free(spg_loop);
+	cif_loop_free(wavelength_loop);
+	cif_loop_free(orient_loop);
+	cif_loop_free(cell_loop);
 
 	stream_close(st);
 
