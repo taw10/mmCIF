@@ -62,6 +62,9 @@ static int add_string_val(cif_container_tp *container,
 	         "Failed to set value");
 	cif_call(cif_container_set_value(container, name_u, val_cif),
 	         "Failed to set value");
+
+	cif_value_free(val_cif);
+	free(name_u);
 	return 0;
 }
 
@@ -76,6 +79,7 @@ static cif_loop_tp *create_loop(cif_container_tp *container,
 	cif_loop_tp *loop;
 	UChar *names[32];
 	UChar *cat_u;
+	int i;
 
 	va_start(ap, category);
 
@@ -98,6 +102,11 @@ static cif_loop_tp *create_loop(cif_container_tp *container,
 	cif_call(cif_container_create_loop(container, cat_u, names, &loop),
 	         "Failed to create loop");
 
+	for ( i=0; i<n_names; i++ ) {
+		free(names[i]);
+	}
+	free(cat_u);
+
 	return loop;
 }
 
@@ -115,6 +124,8 @@ static void cif_packet_set_int(cif_packet_tp *pkt, const char *name, int val)
 	         "Failed to set value");
 	cif_call(cif_packet_set_item(pkt, name_u, val_cif),
 	         "Failed to set packet value");
+	cif_value_free(val_cif);
+	free(name_u);
 }
 
 
@@ -132,6 +143,8 @@ static void cif_packet_set_float(cif_packet_tp *pkt, const char *name,
 	         "Failed to set value");
 	cif_call(cif_packet_set_item(pkt, name_u, val_cif),
 	         "Failed to set packet value");
+	cif_value_free(val_cif);
+	free(name_u);
 }
 
 
@@ -152,6 +165,8 @@ static void cif_packet_set_string(cif_packet_tp *pkt, const char *name,
 	         "Failed to set value");
 	cif_call(cif_packet_set_item(pkt, name_u, val_cif),
 	         "Failed to set packet value");
+	cif_value_free(val_cif);
+	free(name_u);
 }
 
 
@@ -441,7 +456,10 @@ int main(int argc, char *argv[])
 		image = stream_read_chunk(st, STREAM_REFLECTIONS | STREAM_DATA_DETGEOM);
 		if ( image == NULL ) continue;
 
-		if ( image->n_crystals == 0 ) continue;
+		if ( image->n_crystals == 0 ) {
+			image_free(image);
+			continue;
+		}
 
 		add_image_info(wavelength_loop, image_id, image->lambda);
 
@@ -483,14 +501,9 @@ int main(int argc, char *argv[])
 
 		image_id++;
 
-	} while ( image != NULL );
+		image_free(image);
 
-	cif_loop_free(refl_loop);
-	cif_loop_free(batch_loop);
-	cif_loop_free(spg_loop);
-	cif_loop_free(wavelength_loop);
-	cif_loop_free(orient_loop);
-	cif_loop_free(cell_loop);
+	} while ( image != NULL );
 
 	stream_close(st);
 
@@ -505,6 +518,15 @@ int main(int argc, char *argv[])
 	         "Failed to write CIF");
 	fclose(fh);
 
+	free(write_opts);
+	cif_loop_free(refl_loop);
+	cif_loop_free(batch_loop);
+	cif_loop_free(spg_loop);
+	cif_loop_free(wavelength_loop);
+	cif_loop_free(orient_loop);
+	cif_loop_free(cell_loop);
+	cif_call(cif_container_destroy(block),
+	         "Failed to clean up block");
 	cif_call(cif_destroy(cif), "Cleanup failed");
 
 	return 0;
