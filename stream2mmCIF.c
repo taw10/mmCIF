@@ -130,7 +130,7 @@ static void cif_packet_set_int(cif_packet_tp *pkt, const char *name, int val)
 
 
 static void cif_packet_set_float(cif_packet_tp *pkt, const char *name,
-                                 double val)
+                                 double val, int dp)
 {
 	UChar *name_u;
 	cif_value_tp *val_cif;
@@ -139,7 +139,7 @@ static void cif_packet_set_float(cif_packet_tp *pkt, const char *name,
 	         "Create name string");
 	cif_call(cif_value_create(CIF_NUMB_KIND, &val_cif),
 	         "Initialise value");
-	cif_call(cif_value_init_numb(val_cif, val, 0, 3, 1),
+	cif_call(cif_value_init_numb(val_cif, val, 0, dp, 1),
 	         "Failed to set value");
 	cif_call(cif_packet_set_item(pkt, name_u, val_cif),
 	         "Failed to set packet value");
@@ -204,7 +204,7 @@ static void add_image_info(cif_loop_tp *wavelength_loop,
 
 	cif_packet_set_int(packet, "_diffrn_radiation_wavelength.id", image_id);
 	cif_packet_set_float(packet, "_diffrn_radiation_wavelength.wavelength",
-	                     wl*1e10);  /* In Angstroms */
+	                     wl*1e10, 5);  /* In Angstroms */
 
 	cif_call(cif_loop_add_packet(wavelength_loop, packet),
 	         "Failed to add packet to loop");
@@ -246,12 +246,12 @@ static void add_cell(cif_loop_tp *cell_loop, int crystal_id, UnitCell *cell)
 	cell_get_parameters(cell, &a, &b, &c, &al, &be, &ga);
 
 	cif_packet_set_int(packet, "_diffrn_cell.id", crystal_id);
-	cif_packet_set_float(packet, "_diffrn_cell.length_a", a*1e10);
-	cif_packet_set_float(packet, "_diffrn_cell.length_b", b*1e10);
-	cif_packet_set_float(packet, "_diffrn_cell.length_c", c*1e10);
-	cif_packet_set_float(packet, "_diffrn_cell.angle_alpha", rad2deg(al));
-	cif_packet_set_float(packet, "_diffrn_cell.angle_beta", rad2deg(be));
-	cif_packet_set_float(packet, "_diffrn_cell.angle_gamma", rad2deg(ga));
+	cif_packet_set_float(packet, "_diffrn_cell.length_a", a*1e10, 7);
+	cif_packet_set_float(packet, "_diffrn_cell.length_b", b*1e10, 7);
+	cif_packet_set_float(packet, "_diffrn_cell.length_c", c*1e10, 7);
+	cif_packet_set_float(packet, "_diffrn_cell.angle_alpha", rad2deg(al), 7);
+	cif_packet_set_float(packet, "_diffrn_cell.angle_beta", rad2deg(be), 7);
+	cif_packet_set_float(packet, "_diffrn_cell.angle_gamma", rad2deg(ga), 7);
 
 	cif_call(cif_loop_add_packet(cell_loop, packet),
 	         "Failed to add packet to loop");
@@ -272,15 +272,15 @@ static void add_orient(cif_loop_tp *orient_loop, int crystal_id, UnitCell *cell)
 
 	cif_packet_set_int(packet, "_diffrn_orient_matrix.id", crystal_id);
 	cif_packet_set_int(packet, "_diffrn_orient_matrix.diffrn_id", 1);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[1][1]", ax/1e10);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[1][2]", ay/1e10);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[1][3]", az/1e10);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[2][1]", bx/1e10);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[2][2]", by/1e10);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[2][3]", bz/1e10);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[3][1]", cx/1e10);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[3][2]", cy/1e10);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[3][3]", cz/1e10);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[1][1]", ax/1e10, 7);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[1][2]", ay/1e10, 7);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[1][3]", az/1e10, 7);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[2][1]", bx/1e10, 7);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[2][2]", by/1e10, 7);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[2][3]", bz/1e10, 7);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[3][1]", cx/1e10, 7);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[3][2]", cy/1e10, 7);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[3][3]", cz/1e10, 7);
 	cif_packet_set_string(packet, "_diffrn_orient_matrix.type", "UB matrix");
 
 	cif_call(cif_loop_add_packet(orient_loop, packet),
@@ -317,16 +317,16 @@ static void add_reflection(cif_loop_tp *refl_loop, int refln_id, int crystal_id,
 	                   "_diffrn_refln.index_l", l);
 	cif_packet_set_float(packet,
 	                     "_diffrn_refln.intensity_net",
-	                     intensity);
+	                     intensity, 2);
 	cif_packet_set_float(packet,
 	                     "_diffrn_refln.intensity_sigma",
-	                     esd_intensity);
-	cif_packet_set_int(packet,
-	                   "_diffrn_refln.pdbx_detector_calc_fast",
-	                   fs);
-	cif_packet_set_int(packet,
-	                   "_diffrn_refln.pdbx_detector_calc_slow",
-	                   ss);
+	                     esd_intensity, 2);
+	cif_packet_set_float(packet,
+	                     "_diffrn_refln.pdbx_detector_calc_fast",
+	                     fs, 2);
+	cif_packet_set_float(packet,
+	                     "_diffrn_refln.pdbx_detector_calc_slow",
+	                     ss, 2);
 	cif_packet_set_string(packet,
 	                      "_diffrn_refln.pdbx_detector_array_id",
 	                      panel_name);
