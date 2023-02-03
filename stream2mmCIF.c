@@ -188,7 +188,7 @@ static void add_batch_info(cif_loop_tp *batch_loop,
 	cif_packet_set_int(packet, "_diffrn_batch.pdbx_image_id", image_id);
 
 	cif_call(cif_loop_add_packet(batch_loop, packet),
-	         "Failed to add packet to loop");
+	         "Failed to add batch packet to loop");
 
 	cif_packet_free(packet);
 }
@@ -207,7 +207,7 @@ static void add_image_info(cif_loop_tp *wavelength_loop,
 	                     wl*1e10, 5);  /* In Angstroms */
 
 	cif_call(cif_loop_add_packet(wavelength_loop, packet),
-	         "Failed to add packet to loop");
+	         "Failed to add image packet to loop");
 
 	cif_packet_free(packet);
 }
@@ -229,7 +229,7 @@ static void add_spg(cif_loop_tp *spg_loop,
 	cif_packet_set_string(packet, "_space_group.crystal_system", crystal_system);
 
 	cif_call(cif_loop_add_packet(spg_loop, packet),
-	         "Failed to add packet to loop");
+	         "Failed to add SPG packet to loop");
 
 	cif_packet_free(packet);
 }
@@ -254,7 +254,7 @@ static void add_cell(cif_loop_tp *cell_loop, int crystal_id, UnitCell *cell)
 	cif_packet_set_float(packet, "_diffrn_cell.angle_gamma", rad2deg(ga), 7);
 
 	cif_call(cif_loop_add_packet(cell_loop, packet),
-	         "Failed to add packet to loop");
+	         "Failed to add cell packet to loop");
 
 	cif_packet_free(packet);
 }
@@ -284,7 +284,7 @@ static void add_orient(cif_loop_tp *orient_loop, int crystal_id, UnitCell *cell)
 	cif_packet_set_string(packet, "_diffrn_orient_matrix.type", "UB matrix");
 
 	cif_call(cif_loop_add_packet(orient_loop, packet),
-	         "Failed to add packet to loop");
+	         "Failed to add orientation packet to loop");
 
 	cif_packet_free(packet);
 }
