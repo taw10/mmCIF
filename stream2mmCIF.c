@@ -272,15 +272,15 @@ static void add_orient(cif_loop_tp *orient_loop, int crystal_id, UnitCell *cell)
 
 	cif_packet_set_int(packet, "_diffrn_orient_matrix.id", crystal_id);
 	cif_packet_set_int(packet, "_diffrn_orient_matrix.diffrn_id", 1);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[1][1]", ax/1e10, 7);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[1][2]", ay/1e10, 7);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[1][3]", az/1e10, 7);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[2][1]", bx/1e10, 7);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[2][2]", by/1e10, 7);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[2][3]", bz/1e10, 7);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[3][1]", cx/1e10, 7);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[3][2]", cy/1e10, 7);
-	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[3][3]", cz/1e10, 7);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[1][1]", ax/1e10, 8);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[1][2]", ay/1e10, 8);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[1][3]", az/1e10, 8);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[2][1]", bx/1e10, 8);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[2][2]", by/1e10, 8);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[2][3]", bz/1e10, 8);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[3][1]", cx/1e10, 8);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[3][2]", cy/1e10, 8);
+	cif_packet_set_float(packet, "_diffrn_orient_matrix.matrix[3][3]", cz/1e10, 8);
 	cif_packet_set_string(packet, "_diffrn_orient_matrix.type", "UB matrix");
 
 	cif_call(cif_loop_add_packet(orient_loop, packet),
